@@ -1,56 +1,40 @@
 package by.bsu.dependency.context;
 
+import by.bsu.dependency.annotation.Bean;
+import by.bsu.dependency.annotation.BeanScope;
+import by.bsu.dependency.annotation.Inject;
+import by.bsu.dependency.context.exception.ApplicationContextNotStartedException;
+import by.bsu.dependency.context.exception.NoSuchBeanDefinitionException;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.util.*;
+
+
 public class SimpleApplicationContext extends AbstractApplicationContext {
 
-    /**
-     * Создает контекст, содержащий классы, переданные в параметре.
-     * <br/>
-     * Если на классе нет аннотации {@code @Bean}, имя бина получается из названия класса, скоуп бина по дефолту
-     * считается {@code Singleton}.
-     * <br/>
-     * Подразумевается, что у всех классов, переданных в списке, есть конструктор без аргументов.
-     *
-     * @param beanClasses классы, из которых требуется создать бины
-     */
     public SimpleApplicationContext(Class<?>... beanClasses) {
-        throw new IllegalStateException("not implemented");
+        for (Class<?> bean : beanClasses) {
+            registerBeanDefinition(bean);
+        }
     }
 
-    /**
-     * Помимо прочего, метод должен заниматься внедрением зависимостей в создаваемые объекты
-     */
+    private void registerBeanDefinition(Class<?> bean) {
+        Bean annotation = bean.getAnnotation(Bean.class);
+        String beanName = annotation != null && !annotation.name().isEmpty() ? annotation.name() :
+                Character.toLowerCase(bean.getSimpleName().charAt(0)) + bean.getSimpleName().substring(1);
+        BeanScope scope = annotation != null && annotation.scope() == BeanScope.PROTOTYPE ?
+                BeanScope.PROTOTYPE : BeanScope.SINGLETON;
+        beanDefinitions.put(beanName, new BeanDefinition(bean, beanName, scope));
+    }
+
     @Override
     public void start() {
-        throw new IllegalStateException("not implemented");
-    }
-
-    @Override
-    public boolean isRunning() {
-        throw new IllegalStateException("not implemented");
-    }
-
-    @Override
-    public boolean containsBean(String name) {
-        throw new IllegalStateException("not implemented");
-    }
-
-    @Override
-    public Object getBean(String name) {
-        throw new IllegalStateException("not implemented");
-    }
-
-    @Override
-    public <T> T getBean(Class<T> clazz) {
-        throw new IllegalStateException("not implemented");
-    }
-
-    @Override
-    public boolean isPrototype(String name) {
-        throw new IllegalStateException("not implemented");
-    }
-
-    @Override
-    public boolean isSingleton(String name) {
-        throw new IllegalStateException("not implemented");
+        if (status == ContextStatus.NOT_STARTED) {
+            status = ContextStatus.STARTED;
+            createSingletonBeans();
+            injectDependencies();
+        }
     }
 }
