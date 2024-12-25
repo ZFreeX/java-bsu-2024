@@ -8,7 +8,7 @@ import by.bsu.dependency.context.SimpleApplicationContext;
 public class SimpleContextExample {
 
     @Bean(name = "service")
-    public class MyService {  // Make it public
+    public static class MyService {  // Make it public
         public MyService() {
 
         }
@@ -18,10 +18,11 @@ public class SimpleContextExample {
     }
 
     @Bean(name = "controller")
-    public class MyController {  // Make it public
+    public static class MyController {  // Make it public
         public MyController() {
 
         }
+
         @Inject
         public MyService service;  // Change access to public
 

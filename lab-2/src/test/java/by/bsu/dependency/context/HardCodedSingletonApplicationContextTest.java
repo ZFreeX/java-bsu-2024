@@ -29,7 +29,6 @@ class HardCodedSingletonApplicationContextTest {
     @Test
     void testContextContainsNotStarted() {
         assertThrows(
-                // TODO: уточнить класс исключения (ApplicationContextNotStartedException)
                 ApplicationContextNotStartedException.class,
                 () -> applicationContext.containsBean("firstBean")
         );
@@ -47,7 +46,6 @@ class HardCodedSingletonApplicationContextTest {
     @Test
     void testContextGetBeanNotStarted() {
         assertThrows(
-                // TODO: уточнить класс исключения (ApplicationContextNotStartedException)
                 ApplicationContextNotStartedException.class,
                 () -> applicationContext.getBean("firstBean")
         );
@@ -66,7 +64,6 @@ class HardCodedSingletonApplicationContextTest {
         applicationContext.start();
 
         assertThrows(
-                // TODO: уточнить класс исключения (NoSuchBeanDefinitionException)
                 NoSuchBeanDefinitionException.class,
                 () -> applicationContext.getBean("randomName")
         );
@@ -83,7 +80,6 @@ class HardCodedSingletonApplicationContextTest {
     void testIsSingletonThrows() {
         applicationContext.start();
         assertThrows(
-                // TODO: уточнить класс исключения (NoSuchBeanDefinitionException)
                 NoSuchBeanDefinitionException.class,
                 () -> applicationContext.isSingleton("randomName")
         );
@@ -100,7 +96,6 @@ class HardCodedSingletonApplicationContextTest {
     void testIsPrototypeThrows() {
         applicationContext.start();
         assertThrows(
-                // TODO: уточнить класс исключения (NoSuchBeanDefinitionException)
                 NoSuchBeanDefinitionException.class,
                 () -> applicationContext.isPrototype("randomName")
         );

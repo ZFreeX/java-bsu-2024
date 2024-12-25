@@ -47,24 +47,16 @@ public class PostConstructTest {
 
         public TestApplicationContext() {
             // Registering beans
-            beanDefinitions.put("dependencyBean", new BeanDefinition(DependencyBean.class, "dependencyBean", BeanScope.SINGLETON));
-            beanDefinitions.put("singletonBean", new BeanDefinition(SingletonBean.class, "singletonBean", BeanScope.SINGLETON));
-            beanDefinitions.put("prototypeBean", new BeanDefinition(PrototypeBean.class, "prototypeBean", BeanScope.PROTOTYPE));
-        }
-
-        @Override
-        public void start() {
-            if (status == ContextStatus.NOT_STARTED) {
-                status = ContextStatus.STARTED;
-                createSingletonBeans();
-                injectDependencies();
-                invokePostAll();
-            }
+            beanDefinitions.put("dependencyBean", new BeanDefinition(DependencyBean.class));
+            beanDefinitions.put("singletonBean", new BeanDefinition(SingletonBean.class));
+            beanDefinitions.put("prototypeBean", new BeanDefinition(PrototypeBean.class));
         }
     }
 
-    static class SingletonBean {
+    public static class SingletonBean {
+        public SingletonBean() {
 
+        }
         @Inject
         private DependencyBean dependency;
 
@@ -80,8 +72,9 @@ public class PostConstructTest {
         }
     }
 
-    static class PrototypeBean {
-
+    @Bean(scope = BeanScope.PROTOTYPE)
+    public static class PrototypeBean {
+        public PrototypeBean() {}
         @Inject
         private DependencyBean dependency;
 
@@ -97,8 +90,10 @@ public class PostConstructTest {
         }
     }
 
-    static class DependencyBean {
+    public static class DependencyBean {
+        public DependencyBean() {
 
+        }
         public String getInfo() {
             return "Dependency Info";
         }

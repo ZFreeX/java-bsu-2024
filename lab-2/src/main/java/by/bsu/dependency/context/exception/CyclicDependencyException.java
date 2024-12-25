@@ -1,0 +1,11 @@
+package by.bsu.dependency.context.exception;
+
+public class CyclicDependencyException extends RuntimeException {
+    public CyclicDependencyException(String message) {
+        super(message);
+    }
+
+    public CyclicDependencyException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}

@@ -7,22 +7,27 @@ import by.bsu.dependency.annotation.PostConstruct;
 import by.bsu.dependency.context.ApplicationContext;
 import by.bsu.dependency.context.SimpleApplicationContext;
 
-@Bean(name = "postConstructService")
-class PostConstructService {
-    private String status;
-
-    @PostConstruct
-    public void init() {
-        this.status = "Initialized";
-        System.out.println("PostConstructService initialized.");
-    }
-
-    public String getStatus() {
-        return status;
-    }
-}
 
 public class PostConstructExample {
+
+    @Bean(name = "postConstructService")
+    public static class PostConstructService {
+        public PostConstructService() {
+
+        }
+        private String status;
+
+        @PostConstruct
+        public void init() {
+            this.status = "Initialized";
+            System.out.println("PostConstructService initialized.");
+        }
+
+        public String getStatus() {
+            return status;
+        }
+    }
+
     public static void run() {
         ApplicationContext context = new SimpleApplicationContext(PostConstructService.class);
         context.start();

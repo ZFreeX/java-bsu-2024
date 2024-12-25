@@ -9,14 +9,18 @@ import by.bsu.dependency.context.AutoScanApplicationContext;
 public class AutoScanContextExample {
 
     @Bean(name = "databaseService")
-    public class DatabaseService {  // Make it public
+    public static class DatabaseService {  // Make it public
+        public DatabaseService() {}
         public void connect() {
             System.out.println("Database connected.");
         }
     }
 
     @Bean(name = "userService")
-    public class UserService {  // Make it public
+    public static class UserService {  // Make it public
+        public UserService() {
+
+        }
         @Inject
         public DatabaseService databaseService;  // Change access to public
 

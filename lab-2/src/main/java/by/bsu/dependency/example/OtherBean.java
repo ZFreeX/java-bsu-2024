@@ -9,12 +9,12 @@ public class OtherBean {
     @Inject
     private FirstBean firstBean;
 
-    void doSomething() {
-        System.out.println("Hi, I'm other bean");
+    void doS() {
+        System.out.println("other ones");
     }
 
-    void doSomethingWithFirst() {
-        System.out.println("Trying to shake first bean...");
-        firstBean.doSomething();
+    void doFirst() {
+        System.out.println("interaction with first");
+        firstBean.doS();
     }
 }

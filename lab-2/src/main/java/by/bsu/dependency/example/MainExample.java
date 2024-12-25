@@ -8,15 +8,15 @@ import by.bsu.dependency.context.AutoScanApplicationContext;
 public class MainExample {
     public static void main(String[] args) {
         System.out.println("=== Simple Application Context ===");
-        //SimpleContextExample.run();
+        SimpleContextExample.run();
 
         System.out.println("\n=== Auto Scan Application Context ===");
-        //AutoScanContextExample.run();
+        AutoScanContextExample.run();
 
         System.out.println("\n=== Hard Coded Singleton Application Context ===");
-        //HardCodedSingletonExample.run();
+        HardCodedSingletonExample.run();
 
         System.out.println("\n=== PostConstruct Example ===");
-        //PostConstructExample.run();
+        PostConstructExample.run();
     }
 }

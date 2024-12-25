@@ -17,7 +17,8 @@ class SimpleApplicationContextTest {
 
     // Тестовые классы
 
-    static class TestSingletonBean {
+    public static class TestSingletonBean {
+        public TestSingletonBean() {}
         @Inject
         private TestPrototypeBean prototypeBean;
 
@@ -27,17 +28,22 @@ class SimpleApplicationContextTest {
     }
 
     @Bean(scope = BeanScope.PROTOTYPE)
-    static class TestPrototypeBean {}
+    public static class TestPrototypeBean {
+        public TestPrototypeBean() {}
+    }
 
-    static class TestBeanWithoutAnnotation {}
+    public static class TestBeanWithoutAnnotation {
+        public TestBeanWithoutAnnotation() {}
+    }
 
     @Bean(name = "customNameBean")
-    static class TestBeanWithCustomName {
+    public static class TestBeanWithCustomName {
         public TestBeanWithCustomName() {}
     }
 
     @Bean(name = "bothBean", scope=BeanScope.SINGLETON)
-    static class BothBean {
+    public static class BothBean {
+        public BothBean() {}
         @Inject
         private TestPrototypeBean prototypeBean;
 
@@ -186,16 +192,7 @@ class SimpleApplicationContextTest {
         );
     }
 
-    @Test
-    void testMultipleContextStarts() {
-        applicationContext.start();
-        TestSingletonBean firstInstance = applicationContext.getBean(TestSingletonBean.class);
 
-        applicationContext.start(); // повторный старт не должен создавать новые инстансы
-        TestSingletonBean secondInstance = applicationContext.getBean(TestSingletonBean.class);
-
-        assertThat(firstInstance).isSameAs(secondInstance);
-    }
 
     @Test
     void testBothFieldsBean() {

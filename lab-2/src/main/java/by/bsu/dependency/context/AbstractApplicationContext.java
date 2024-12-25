@@ -5,12 +5,14 @@ import by.bsu.dependency.annotation.Inject;
 import by.bsu.dependency.annotation.BeanScope;
 import by.bsu.dependency.annotation.PostConstruct;
 import by.bsu.dependency.context.exception.ApplicationContextNotStartedException;
+import by.bsu.dependency.context.exception.CyclicDependencyException;
 import by.bsu.dependency.context.exception.NoSuchBeanDefinitionException;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public abstract class AbstractApplicationContext implements ApplicationContext {
 
@@ -19,9 +21,65 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
         STARTED
     }
 
+    private enum VertexState {
+        NOT_USED,
+        USED,
+        IN_PROCESS
+    }
+
+    private static class Vertex {
+        public VertexState state = VertexState.NOT_USED;
+        public List<String> descedants = new ArrayList<>();
+    }
+
     protected final Map<String, BeanDefinition> beanDefinitions = new HashMap<>();
     protected final Map<String, Object> singletonBeans = new HashMap<>();
     protected ContextStatus status = ContextStatus.NOT_STARTED;
+    private final Map<String, Vertex> graph = new HashMap<>(); //why not added previously???
+
+
+
+    protected void preprocess(List<Class<?>> beans) {
+        beans.forEach(clazz -> beanDefinitions.put(BeanDefinition.getName(clazz), new BeanDefinition(clazz)));
+        beanDefinitions.forEach((name, beanDefinition) -> {
+            graph.put(name, new Vertex());
+            beanDefinition.deps.forEach(dependency -> {
+                graph.get(name).descedants.add(BeanDefinition.getName(dependency.getType()));
+            });
+        });
+    }
+
+    private void checkGraph() {
+        if (!graph.isEmpty()) {
+            dfs(graph.keySet().iterator().next());
+        }
+    }
+
+    private void dfs(String name) {
+        Vertex node = graph.get(name);
+        if (node.state == VertexState.IN_PROCESS) {
+            throw new CyclicDependencyException(name);
+        }
+        if (node.state == VertexState.USED) {
+            return;
+        }
+        node.state = VertexState.IN_PROCESS;
+        for (String u : node.descedants) {
+            dfs(u);
+        }
+        node.state = VertexState.USED;
+
+    }
+
+
+    AbstractApplicationContext(Class<?>... beans) {
+        this(Arrays.asList(beans));
+    }
+
+    AbstractApplicationContext(List<Class<?>> beanClasses) {
+        preprocess(beanClasses);
+    }
+
 
     protected void checkContextStarted() {
         if (status == ContextStatus.NOT_STARTED) {
@@ -29,73 +87,63 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
         }
     }
 
-    protected Object instantiateBean(Class<?> beanClass) {
+    @Override
+    public void start() {
+        checkGraph();
+        status = ContextStatus.STARTED;
+        beanDefinitions.forEach((name, beanInfo) -> {
+            if (beanInfo.scope == BeanScope.SINGLETON) {
+                singletonBeans.put(name, instantiateBean(beanInfo));
+            }
+        });
+        singletonBeans.forEach((name, instance) -> injectDependencies(beanDefinitions.get(name), instance));
+        singletonBeans.forEach((name, instance) -> runPost(beanDefinitions.get(name), instance));
+    }
+
+    protected Object instantiateBean(BeanDefinition beanDefinition) {
         try {
-            return beanClass.getDeclaredConstructor().newInstance();
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to instantiate bean: " + beanClass.getName(), e);
+            return beanDefinition.beanClass.getConstructor().newInstance();
+        } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException |
+                 InstantiationException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    protected void createSingletonBeans() {
-        beanDefinitions.values().stream()
-                .filter(BeanDefinition::isSingleton)
-                .forEach(def -> {
-                    Object bean = instantiateBean(def.getBeanClass());
-                    singletonBeans.put(def.getName(), bean);
-                    injectDependenciesIntoBean(bean);
-                    invokePostConstruct(bean);
-                });
-    }
-
-    protected void injectDependencies() {
-        singletonBeans.values().forEach(this::injectDependenciesIntoBean);
-    }
-
-    protected void invokePostAll() {
-        singletonBeans.values().forEach(this::invokePostConstruct);
-    }
 
     public static void printHashMap(Map<String, BeanDefinition> map) {
         for (Map.Entry<String, BeanDefinition> entry : map.entrySet()) {
-            System.out.println("Key: " + entry.getKey() + ", Value name: " + entry.getValue().getName());
+            System.out.println("Key: " + entry.getKey() + ", Value name: " + entry.getValue().toString());
         }
     }
 
 
-    protected void injectDependenciesIntoBean(Object bean) {
-        for (Field field : bean.getClass().getDeclaredFields()) {
-            if (field.isAnnotationPresent(Inject.class)) {
+    private void injectDependencies(BeanDefinition beanDef, Object bean) {
+        try {
+            for (Field field : beanDef.deps) {
                 field.setAccessible(true);
-                try {
-                    Class<?> dependencyType = field.getType();
-                    String dependencyName = dependencyType.getSimpleName().toLowerCase().charAt(0) + dependencyType.getSimpleName().substring(1);
-                    Object dep = getBean(dependencyName);
-                    if (!beanDefinitions.containsKey(dependencyName)) {
-                        beanDefinitions.put(dependencyName, new BeanDefinition(dependencyType, dependencyName, BeanScope.SINGLETON));
-                        injectDependenciesIntoBean(dep);
-                        invokePostConstruct(dep);
-                    }
-                    field.set(bean, dep);
-
-                } catch (IllegalAccessException e) {
-                    throw new RuntimeException("Failed to inject dependency into field: " + field.getName(), e);
-                }
+                field.set(bean, getBeanInstance(BeanDefinition.getName(field.getType())));
             }
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    protected void invokePostConstruct(Object bean) {
-        for (Method method : bean.getClass().getDeclaredMethods()) {
-            if (method.isAnnotationPresent(PostConstruct.class)) {
-                method.setAccessible(true);
-                System.out.println("Goind to invoke init from " + bean.getClass());
-                try {
-                    method.invoke(bean);
-                } catch (Exception e) {
-                    System.out.println(e.getMessage());
-                }
-            }
+
+    private void runPost(BeanDefinition beanDef, Object bean) {
+        var posts = Arrays.stream(beanDef.beanClass.getDeclaredMethods())
+                .filter(field -> field.isAnnotationPresent(PostConstruct.class))
+                .collect(Collectors.toList());
+        if (posts.size() > 1)
+            throw new RuntimeException("Only one postConstruct field can be handled.");
+        if (posts.isEmpty()) {
+            return;
+        }
+        Method postConstruct = posts.get(0);
+        try {
+            postConstruct.setAccessible(true);
+            postConstruct.invoke(bean);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -110,6 +158,17 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
         return beanDefinitions.containsKey(name);
     }
 
+    private Object getBeanInstance(String name) {
+        if (isSingleton(name)) {
+            return singletonBeans.get(name);
+        }
+        BeanDefinition def = beanDefinitions.get(name);
+        var instance = instantiateBean(def);
+        injectDependencies(def, instance);
+        runPost(def, instance);
+        return instance;
+    }
+
     @Override
     public Object getBean(String name) {
         checkContextStarted();
@@ -117,22 +176,15 @@ public abstract class AbstractApplicationContext implements ApplicationContext {
         if (def == null) {
             throw new NoSuchBeanDefinitionException("Bean with name '" + name + "' not found");
         }
-        Object bean = def.getScope() == BeanScope.SINGLETON ? singletonBeans.get(name) : instantiateBean(def.getBeanClass());
-        if (def.getScope() == BeanScope.PROTOTYPE) {
-            injectDependenciesIntoBean(bean);
-            invokePostConstruct(bean);
-        }
-        return bean;
+        return getBeanInstance(name);
     }
+
+
 
     @Override
     public <T> T getBean(Class<T> clazz) {
         checkContextStarted();
-        return beanDefinitions.values().stream()
-                .filter(def -> clazz.isAssignableFrom(def.getBeanClass()))
-                .findFirst()
-                .map(def -> (T) getBean(def.getName()))
-                .orElseThrow(() -> new NoSuchBeanDefinitionException("No bean found of type " + clazz.getName()));
+        return clazz.cast(getBean(BeanDefinition.getName(clazz)));
     }
 
     @Override
