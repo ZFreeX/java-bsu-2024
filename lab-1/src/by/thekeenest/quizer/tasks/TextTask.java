@@ -20,10 +20,12 @@ public class TextTask implements Task {
 
     @Override
     public Result validate(String answer) {
-        if (answer == correctAnswer) {
-            return Result.OK;
-        } else {
-            return Result.WRONG;
+        System.out.println("in gen");
+        if (answer == null || answer.isBlank()) {
+            return Result.INCORRECT_INPUT;
         }
+        return answer.trim().equalsIgnoreCase(correctAnswer.trim())
+                ? Result.OK
+                : Result.WRONG;
     }
 }

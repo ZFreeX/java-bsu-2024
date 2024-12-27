@@ -63,6 +63,8 @@ public class Quiz {
             throw new QuizFinishedException();
         }
         Result res = currentTask.validate(answer);
+        System.out.println(String.format("Validating answer: %s, %s", answer, answer));
+
         if (res == Result.OK) {
             ok++;
         } else if (res == Result.WRONG) {
@@ -73,7 +75,6 @@ public class Quiz {
         if (!res.equals(Result.INCORRECT_INPUT)) {
             currentTask = null; //вот это и пофиксит мой issue =)
         }
-        //System.out.println(String.format("State complete and amount: %d | %d", completedTasks(), taskAmount));
         if (completedTasks() == taskAmount) {
             finished = true;
         }
