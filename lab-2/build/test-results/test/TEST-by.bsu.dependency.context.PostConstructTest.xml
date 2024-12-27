@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="by.bsu.dependency.context.PostConstructTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2024-12-25T12:20:32" hostname="kosteek-X510UN" time="0.203">
+  <properties/>
+  <testcase name="testPrototypePostConstruct()" classname="by.bsu.dependency.context.PostConstructTest" time="0.203"/>
+  <system-out><![CDATA[SINGLETON MOMENT
+proto MOMENT
+SINGLETON MOMENT
+proto MOMENT
+SINGLETON MOMENT
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
